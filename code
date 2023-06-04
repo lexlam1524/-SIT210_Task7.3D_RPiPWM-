@@ -1,29 +1,55 @@
-const int trig = D2;
-const int echo = D3;
-const int ledPin = D4;
+import RPi.GPIO as GPIO
+import time
 
-void setup() {
-  pinMode(trig, OUTPUT);
-  pinMode(echo, INPUT);
-  pinMode(ledPin, OUTPUT);
-}
+# Ultrasonic sensor pins
+TRIG_PIN = 23
+ECHO_PIN = 24
 
-void loop() {
-  // Measure distance using ultrasonic sensor
-  digitalWrite(trig, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trig, LOW);
-  long duration = pulseIn(echo, HIGH);
-  float distance = duration * 0.034 / 2;
+# PWM pin
+PWM_PIN = 18
 
-  // Control LED brightness based on distance
-  if (distance < 30) {
-    // Adjust brightness based on distance
-    float brightness = map(distance, 0.0, 30.0, 255.0, 0.0);
-    analogWrite(ledPin, brightness);
-  } else {
-    analogWrite(ledPin, 0); // turn off LED
-  }
+# Set up GPIO mode and PWM
+GPIO.setwarnings(False)
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(TRIG_PIN, GPIO.OUT)
+GPIO.setup(ECHO_PIN, GPIO.IN)
+GPIO.setup(PWM_PIN, GPIO.OUT)
+pwm = GPIO.PWM(PWM_PIN, 1000)  
+pwm.start(0)	
 
-  delay(100);
-}
+# Function to calculate distance
+def get_distance():
+    GPIO.output(TRIG_PIN, GPIO.HIGH)
+    time.sleep(0.00001)
+    GPIO.output(TRIG_PIN, GPIO.LOW)
+    
+    while GPIO.input(ECHO_PIN) == 0:
+        pulse_start = time.time()
+        
+    while GPIO.input(ECHO_PIN) == 1:
+        pulse_end = time.time()
+        
+    pulse_duration = pulse_end - pulse_start
+    distance = (pulse_duration * 34300)/2 
+    
+    
+    return distance
+
+# Main program loop
+try:
+    while True:
+        distance = get_distance()
+        print("Measured Distance = %.1f cm" % distance)
+        # Adjust PWM based on distance
+        duty_cycle = max(0.0, min(100.0, 100 - (distance * 2)))
+        
+        pwm.ChangeDutyCycle(duty_cycle)
+        
+        time.sleep(0.1)
+
+except KeyboardInterrupt:
+    pass
+
+# Clean up GPIO
+GPIO.cleanup()
+
